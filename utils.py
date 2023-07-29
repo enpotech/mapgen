@@ -1,15 +1,20 @@
-import geopy
-from geopy.distance import lonlat, distance, Distance
-from geopy import Point
-import requests
-from urllib.request import urlretrieve
 #from zipfile import ZipFile
 import math
 from typing import Dict
+from urllib.request import urlretrieve
 
+import geopy
+import requests
+from geopy import Point
+from geopy.distance import Distance, distance, lonlat
+import folium
 #define list of ordinals
-
-
+import matplotlib.pyplot as plt
+import numpy as np
+import rasterio
+from PIL import Image, ImageFilter
+from rasterio.plot import reshape_as_image
+import requests
 
 def calculate_coordinates(start_point: Point, map_size: float) -> Dict[str, Point]:
 
@@ -29,15 +34,12 @@ start_latitude = 51.864445  # Starting latitude in decimal degrees
 start_longitude = -2.244444  # Starting longitude in decimal degrees
 start_point = lonlat(x = start_longitude, y=start_latitude)
 
-map_bbox = calculate_coordinates(start_point,10)
-
-
-import requests
+map_bbox = calculate_coordinates(start_point,2)
 
 def download_srtm_data(api_key, south, north, west, east, output_file):
     try:
 
-        url = f"https://portal.opentopography.org/API/globaldem?demtype=SRTMGL3&south={south}&north={north}&west={west}&east={east}&outputFormat=GTiff&API_Key={api_key}"
+        url = f"https://portal.opentopography.org/API/globaldem?demtype=SRTMGL1&south={south}&north={north}&west={west}&east={east}&outputFormat=GTiff&API_Key={api_key}"
         # Send an HTTP GET request to the OpenTopography API
         response = requests.get(url)
         response.raise_for_status()
@@ -61,11 +63,9 @@ east = map_bbox['ne'].longitude
 print(south, north, west, east,)
 download_srtm_data(api_key, south, north, west, east, output_file)
 
-import rasterio
-import matplotlib.pyplot as plt
-from rasterio.plot import reshape_as_image
-from PIL import Image, ImageFilter
-import numpy as np
+
+
+
 def geotiff_to_grayscale_with_blur(geotiff_file, output_jpeg):
     try:
         # Read the GeoTIFF file
@@ -99,7 +99,8 @@ geotiff_file = "srtm_data.tif"  # Replace with the path to your GeoTIFF file
 output_jpeg = "output_image.png"
 geotiff_to_grayscale_with_blur(geotiff_file, output_jpeg)
 
-import folium
+
+
 coords = [[map_bbox['nw'].latitude,map_bbox['nw'].longitude], [map_bbox['se'].latitude,map_bbox['se'].longitude]]
 print(map_bbox['se'].longitude)
 # Create a map centered at the given coordinates
@@ -125,11 +126,20 @@ tile = folium.TileLayer(
     overlay=False,
     control=True
 ).add_to(m)
-folium.GeoJson("elevation_data.geojson", name="Elevation").add_to(m)
+
+tiledem = folium.TileLayer(
+    tiles='https://server.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',
+    attr='Esri',
+    name='Esri DEM',
+    overlay=False,
+    control=True
+).add_to(m)
+print(tiledem.tiles)
 
 # Add layer control
 folium.LayerControl().add_to(m)
 # Display the map
 m.save("tst.html")
 import webbrowser
+
 webbrowser.open('tst.html')

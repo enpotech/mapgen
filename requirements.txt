@@ -1,5 +1,6 @@
-
+earthengine_api==0.1.343
+ee==0.2
+folium==0.14.0
 geopy==2.3.0
-matplotlib==3.7.2
-numpy==1.25.1
-requests==2.31.0
+numpy==1.24.2
+Requests==2.31.0
