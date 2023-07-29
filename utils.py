@@ -11,14 +11,14 @@ from typing import Dict
 
 
 
-def calculate_coordinates(start_point: Point, map_size: int) -> Dict[str, Point]:
+def calculate_coordinates(start_point: Point, map_size: float) -> Dict[str, Point]:
 
     # diagonal = √2 × side
     diagonal = math.sqrt(2) * map_size
     print(f'Diagonal: {diagonal:.4f} km')
     bbox = dict()
     bbox['nw'] = start_point
-    bbox['se'] = distance(kilometers=diagonal).destination(point=start_point, bearing=45)
+    bbox['se'] = distance(kilometers=diagonal).destination(point=start_point, bearing=135)
     bbox['ne'] = Point(longitude=bbox['se'].longitude, latitude=bbox['nw'].latitude)
     bbox['sw'] = Point(longitude=bbox['nw'].longitude, latitude=bbox['se'].latitude)
     return bbox
@@ -29,13 +29,79 @@ start_latitude = 51.864445  # Starting latitude in decimal degrees
 start_longitude = -2.244444  # Starting longitude in decimal degrees
 start_point = lonlat(x = start_longitude, y=start_latitude)
 
-map_bbox = calculate_coordinates(start_point,2)
+map_bbox = calculate_coordinates(start_point,10)
 
 
-print(Point(map_bbox['nw']).format_decimal().split(" "))
+import requests
+
+def download_srtm_data(api_key, south, north, west, east, output_file):
+    try:
+
+        url = f"https://portal.opentopography.org/API/globaldem?demtype=SRTMGL3&south={south}&north={north}&west={west}&east={east}&outputFormat=GTiff&API_Key={api_key}"
+        # Send an HTTP GET request to the OpenTopography API
+        response = requests.get(url)
+        response.raise_for_status()
+
+        # Save the data to a local file
+        with open(output_file, 'wb') as f:
+            f.write(response.content)
+
+        print(f"SRTM data downloaded successfully to '{output_file}'")
+    except requests.exceptions.RequestException as e:
+        print(f"Error occurred: {e}")
+
+api_key = "ee95e75d42fbad761ddc4af359bd941a"
+
+output_file = "srtm_data.tif"  # Replace with the desired output file path
+
+south = map_bbox["sw"].latitude
+north = map_bbox["nw"].latitude
+west = map_bbox["sw"].longitude
+east = map_bbox['ne'].longitude
+print(south, north, west, east,)
+download_srtm_data(api_key, south, north, west, east, output_file)
+
+import rasterio
+import matplotlib.pyplot as plt
+from rasterio.plot import reshape_as_image
+from PIL import Image, ImageFilter
+import numpy as np
+def geotiff_to_grayscale_with_blur(geotiff_file, output_jpeg):
+    try:
+        # Read the GeoTIFF file
+        with rasterio.open(geotiff_file) as dataset:
+            # Read the single-band raster data
+            data = dataset.read(1)
+
+            # Limit the range of values to avoid exaggeration
+            vmin = np.percentile(data, 0)   # 5th percentile as minimum value
+            vmax = np.percentile(data, 100)  # 95th percentile as maximum value
+            clipped_data = np.clip(data, vmin, vmax)
+
+            # Normalize the data to 0-255 range
+            normalized_data = ((clipped_data - vmin) / (vmax - vmin) * 255).astype(np.uint8)
+
+        # Convert NumPy array to PIL Image
+        image = Image.fromarray(normalized_data, mode='L')  # 'L' mode for grayscale
+
+        # Apply Gaussian blur to the image
+        blurred_image = image.filter(ImageFilter.GaussianBlur(radius=2))
+
+        # Save the PIL Image as JPEG
+        blurred_image.save(output_jpeg, format='PNG')
+
+        print(f"GeoTIFF converted to grayscale and saved as JPEG: '{output_jpeg}'")
+    except Exception as e:
+        print(f"Error occurred: {e}")
+
+# Example usage
+geotiff_file = "srtm_data.tif"  # Replace with the path to your GeoTIFF file
+output_jpeg = "output_image.png"
+geotiff_to_grayscale_with_blur(geotiff_file, output_jpeg)
+
 import folium
 coords = [[map_bbox['nw'].latitude,map_bbox['nw'].longitude], [map_bbox['se'].latitude,map_bbox['se'].longitude]]
-
+print(map_bbox['se'].longitude)
 # Create a map centered at the given coordinates
 m = folium.Map(location=coords[0], zoom_start=13)
 
