@@ -39,7 +39,9 @@ map_bbox = calculate_coordinates(start_point,2)
 def download_srtm_data(api_key, south, north, west, east, output_file):
     try:
 
-        url = f"https://portal.opentopography.org/API/globaldem?demtype=SRTMGL1&south={south}&north={north}&west={west}&east={east}&outputFormat=GTiff&API_Key={api_key}"
+        # url = f"https://portal.opentopography.org/API/globaldem?demtype=SRTMGL1&south={south}&north={north}&west={west}&east={east}&outputFormat=GTiff&API_Key={api_key}"
+        url = f"https://server.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{13}/{2}/{50}"
+        url = f"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{18}/{}/{x}"
         # Send an HTTP GET request to the OpenTopography API
         response = requests.get(url)
         response.raise_for_status()
@@ -61,9 +63,9 @@ north = map_bbox["nw"].latitude
 west = map_bbox["sw"].longitude
 east = map_bbox['ne'].longitude
 print(south, north, west, east,)
+print(f'https://www.gmrt.org/services/GridServer?north={north}&west={west}&east={east}&south={south}&layer=topo&format=geotiff&mresolution=1')
+
 download_srtm_data(api_key, south, north, west, east, output_file)
-
-
 
 
 def geotiff_to_grayscale_with_blur(geotiff_file, output_jpeg):
@@ -99,8 +101,6 @@ geotiff_file = "srtm_data.tif"  # Replace with the path to your GeoTIFF file
 output_jpeg = "output_image.png"
 geotiff_to_grayscale_with_blur(geotiff_file, output_jpeg)
 
-
-
 coords = [[map_bbox['nw'].latitude,map_bbox['nw'].longitude], [map_bbox['se'].latitude,map_bbox['se'].longitude]]
 print(map_bbox['se'].longitude)
 # Create a map centered at the given coordinates
@@ -134,7 +134,6 @@ tiledem = folium.TileLayer(
     overlay=False,
     control=True
 ).add_to(m)
-print(tiledem.tiles)
 
 # Add layer control
 folium.LayerControl().add_to(m)
